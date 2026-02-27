@@ -1,0 +1,17 @@
+{
+    "name": "bot-oberon-mcp-wha",
+    "version": "1.0.0",
+    "description": "Bot WhatsApp integration with Gemini and MCP para consultas de placas",
+    "main": "botOberonMCP-WHA.js",
+    "scripts": {
+        "start": "node botOberonMCP-WHA.js"
+    },
+    "dependencies": {
+        "@google/generative-ai": "^0.22.0",
+        "@modelcontextprotocol/sdk": "^1.5.0",
+        "axios": "^1.7.9",
+        "dotenv": "^16.4.5",
+        "eventsource": "^3.0.2",
+        "socket.io-client": "^4.8.1"
+    }
+}

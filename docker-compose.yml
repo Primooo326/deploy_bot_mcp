@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  bot-oberon-mcp-wha:
+    build: .
+    container_name: bot-oberon-mcp-wha
+    restart: unless-stopped
+    network_mode: "host"
+    environment:
+      - NODE_ENV=production
