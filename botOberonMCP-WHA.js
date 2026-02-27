@@ -9,7 +9,7 @@ const { Client } = require("@modelcontextprotocol/sdk/client/index.js");
 const { StreamableHTTPClientTransport } = require("@modelcontextprotocol/sdk/client/streamableHttp.js");
 
 const apiKey = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(apiKey);
+const genAI = new GoogleGenerativeAI("AIzaSyDg3OsdOr9ONZCXntBGlS4ilF-mpt_nb8g");
 
 const modelJSON = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",
@@ -134,11 +134,24 @@ socket.on("connect", () => {
 socket.on("whatsapp_message", async (data) => {
     if (!data || !data.body || data.type !== "chat") return;
 
-    const isLunaCommand = data.body.trim().toLowerCase().startsWith("/luna ");
+    const bodyText = data.body.trim();
+    // Considerar que empieza con "/luna " o que es exactamente "/luna"
+    const isLunaCommand = bodyText.toLowerCase().startsWith("/luna ") || bodyText.toLowerCase() === "/luna";
 
     if (isLunaCommand) {
-        const userPrompt = data.body.trim().substring(6).trim();
-        console.log("🤖 Comando /luna detectado. Prompt:", userPrompt);
+        // Extraer lo que está después de "/luna"
+        let userPrompt = "";
+        if (bodyText.toLowerCase() !== "/luna") {
+            userPrompt = bodyText.substring(6).trim();
+        }
+
+        console.log("🤖 Comando /luna detectado. Prompt:", userPrompt || "(vacío)");
+
+        // Si solo dicen /luna sin texto y sin citar un mensaje
+        if (!userPrompt && !data.hasQuotedMsg) {
+            enviarRespuesta("¿En qué te puedo servir?", [data.from]);
+            return;
+        }
 
         try {
             const chatSession = modelText.startChat({
