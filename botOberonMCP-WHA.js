@@ -117,7 +117,12 @@ async function initMCP() {
 initMCP();
 
 const wsUrl = process.env.WHA_WEBSOCKET_URL || "https://wha.oberon360.com/";
-const socket = io(wsUrl);
+const socket = io(wsUrl, {
+    reconnection: true,             // Habilitar reconexión automática
+    reconnectionDelay: 1000,        // Esperar 1 segundo antes del primer intento
+    reconnectionDelayMax: 5000,     // Tiempo máximo de espera entre intentos (5s)
+    reconnectionAttempts: Infinity  // Reintentar de forma indefinida
+});
 
 console.log("🔌 Iniciando conexión con el WebSocket...");
 
@@ -140,7 +145,12 @@ socket.on("whatsapp_message", async (data) => {
                 tools: geminiTools.length > 0 ? [{ functionDeclarations: geminiTools }] : undefined
             });
 
-            let result = await chatSession.sendMessage(`Usuario_Destino (to): ${data.number}\nMensaje_Usuario: ${userPrompt}\nID_Mensaje (replyMessageId): ${data.id}\n\nRECUERDA: Responde mediante la herramienta Enviar_Mensaje_WhatsApp. En el argumento 'to' debes poner un array de string con ÚNICAMENTE este valor: "${data.number}". En 'replyMessageId' debes usar el ID_Mensaje (${data.id}).`);
+            let extraContext = "";
+            if (data.hasQuotedMsg && data.quotedMessage) {
+                extraContext = `\nMensaje_Citado_Contexto: "${data.quotedMessage.body}" (Enviado por: ${data.quotedMessage.name || data.quotedMessage.from})`;
+            }
+
+            let result = await chatSession.sendMessage(`Usuario_Destino (to): ${data.number}\nMensaje_Usuario: ${userPrompt}${extraContext}\nID_Mensaje (replyMessageId): ${data.id}\n\nRECUERDA: Responde mediante la herramienta Enviar_Mensaje_WhatsApp. En el argumento 'to' debes poner un array de string con ÚNICAMENTE este valor: "${data.number}". En 'replyMessageId' debes usar el ID_Mensaje (${data.id}).`);
 
             let isDone = false;
             while (!isDone) {
