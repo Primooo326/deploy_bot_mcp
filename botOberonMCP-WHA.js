@@ -9,7 +9,7 @@ const { Client } = require("@modelcontextprotocol/sdk/client/index.js");
 const { StreamableHTTPClientTransport } = require("@modelcontextprotocol/sdk/client/streamableHttp.js");
 
 const apiKey = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI("AIzaSyDg3OsdOr9ONZCXntBGlS4ilF-mpt_nb8g");
+const genAI = new GoogleGenerativeAI(apiKey);
 
 const modelJSON = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",
