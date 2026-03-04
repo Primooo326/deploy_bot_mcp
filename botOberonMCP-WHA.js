@@ -1,11 +1,4 @@
 require('dotenv').config();
-const events = require('events');
-events.defaultMaxListeners = 1000;
-try {
-    events.setMaxListeners(1000);
-} catch (e) {
-    // fallback
-}
 const { io } = require("socket.io-client");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { default: axios } = require('axios');
@@ -70,7 +63,15 @@ async function initMCP() {
 
         const mcpUrl = process.env.MCP_SERVER_URL || "http://localhost:3001/mcp";
         const transport = new StreamableHTTPClientTransport(new URL(mcpUrl), {
-            requestInit: { headers: { 'x-api-key': tokenStr } }
+            requestInit: { headers: { 'x-api-key': tokenStr } },
+            fetch: async (url, init) => {
+                // Eliminar el AbortSignal para evitar el memory leak en Node.js de listeners
+                // Esto asegura que la cantidad de listeners sea cero, sin requerir aumento global de limites
+                if (init && init.signal) {
+                    delete init.signal;
+                }
+                return fetch(url, init);
+            }
         });
 
         mcpClient = new Client({
