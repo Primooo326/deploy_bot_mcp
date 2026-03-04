@@ -1,4 +1,11 @@
 require('dotenv').config();
+const events = require('events');
+events.defaultMaxListeners = 1000;
+try {
+    events.setMaxListeners(1000);
+} catch (e) {
+    // fallback
+}
 const { io } = require("socket.io-client");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { default: axios } = require('axios');
@@ -163,7 +170,7 @@ socket.on("whatsapp_message", async (data) => {
                 extraContext = `\nMensaje_Citado_Contexto: "${data.quotedMessage.body}" (Enviado por: ${data.quotedMessage.name || data.quotedMessage.from})`;
             }
 
-            let result = await chatSession.sendMessage(`Usuario_Destino (to): ${data.number}\nMensaje_Usuario: ${userPrompt}${extraContext}\nID_Mensaje (replyMessageId): ${data.id}\n\nRECUERDA: Responde mediante la herramienta Enviar_Mensaje_WhatsApp. En el argumento 'to' debes poner un array de string con ÚNICAMENTE este valor: "${data.number}". En 'replyMessageId' debes usar el ID_Mensaje (${data.id}).`);
+            let result = await chatSession.sendMessage(`Usuario_Destino (to): ${data.from}\nMensaje_Usuario: ${userPrompt}${extraContext}\nID_Mensaje (replyMessageId): ${data.id}\n\nRECUERDA: Responde mediante la herramienta Enviar_Mensaje_WhatsApp. En el argumento 'to' debes poner un array de string con ÚNICAMENTE este valor: "${data.from}". En 'replyMessageId' debes usar el ID_Mensaje (${data.id}).`);
 
             let isDone = false;
             while (!isDone) {
