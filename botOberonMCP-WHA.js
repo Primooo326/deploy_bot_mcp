@@ -36,7 +36,7 @@ const modelText = genAI.getGenerativeModel({
     🕒 *Último Reporte:* [Fecha y hora legible de gps.fecha]
     📍 *Dirección:* [gps.ubicacion.address]
     🗺️ *Ubicación en Mapa:* https://www.google.com/maps/search/?api=1&query=[gps.ubicacion.lat],[gps.ubicacion.lng]
-    🌡️ *Temperatura:* [Si consultaste la otra herramienta y cuentas con temperatura inclúyela aquí, de lo contrario omite la fila]
+    🌡️ *Temperatura:* [Si consultaste la otra herramienta y cuentas con temperatura inclúyela aquí junto a su fecha de ultimo reporte, de lo contrario omite la fila]
     
     Responde directamente con la información estructurada sin frases introductorias largas.`
 });
@@ -70,7 +70,7 @@ async function initMCP() {
     try {
         // API key used by oberon server verification (constants.js format / checkToken)
 
-        const mcpUrl = process.env.MCP_SERVER_URL || "http://localhost:3001/mcp";
+        const mcpUrl = process.env.MCP_SERVER_URL || "https://mcp.oberon360.com/mcp";
         const transport = new StreamableHTTPClientTransport(new URL(mcpUrl), {
             requestInit: { headers: { 'x-api-key': tokenStr } },
             fetch: async (url, init) => {
