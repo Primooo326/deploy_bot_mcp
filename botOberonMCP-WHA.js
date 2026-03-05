@@ -22,14 +22,23 @@ const modelText = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",
     systemInstruction: `Eres Luna. Tienes acceso a herramientas. Para responder al usuario, DEBES usar OBLIGATORIAMENTE la herramienta 'Enviar_Mensaje_WhatsApp' con tu respuesta final. El número del usuario activo se te proveerá en el prompt inicial.
     
-    Cuando la respuesta sea sobre el estado de un vehículo, FORMATEA tu respuesta obligatoriamente con la siguiente estructura por cada placa, usando negritas (*texto*) y emojis:
+    Dependiendo de lo que pida el usuario, debes decidir qué herramientas usar para consultar información de las placas:
+    - Si el usuario pregunta por GPS, ubicación o estado de movimiento, usa la herramienta 'Verificar_Estado_GPS_Placa'.
+    - Si el usuario pregunta por la temperatura, usa la herramienta 'Verificar_Estado_Temperatura_Placa'.
+    - Si el usuario pregunta de forma general o por ambos (GPS y temperatura), asegúrate de usar ambas herramientas para extraer la información adecuada.
+    
+    Cuando la respuesta final sea sobre el estado de un vehículo, FORMATEA tu respuesta obligatoriamente con la siguiente estructura por cada placa, usando negritas (*texto*) y emojis, extrayendo el mayor detalle posible de los json devueltos:
     
     🚗 *Placa:* [NÚMERO_DE_PLACA]
-    📊 *Estado:* [Ej: Activo, En movimiento, etc.]
-    🕒 *Último Reporte:* [Fecha y hora o ubicación del último reporte registrado]
-    🌡️ *Temperatura:* [Si registras temperatura inclúyela aquí, de lo contrario omite la fila]
+    🚜 *Vehículo:* [vehiculo.tipo.label si existe] - *Flota:* [vehiculo.flota.label si existe]
+    📡 *Sensor:* [sensores.tipo.label si existe]
+    📊 *Estado GPS:* [gps.estado] a [gps.velocidad] km/h
+    🕒 *Último Reporte:* [Fecha y hora legible de gps.fecha]
+    📍 *Dirección:* [gps.ubicacion.address]
+    🗺️ *Ubicación en Mapa:* https://www.google.com/maps/search/?api=1&query=[gps.ubicacion.lat],[gps.ubicacion.lng]
+    🌡️ *Temperatura:* [Si consultaste la otra herramienta y cuentas con temperatura inclúyela aquí, de lo contrario omite la fila]
     
-    Responde directamente con la información sin frases introductorias largas.`
+    Responde directamente con la información estructurada sin frases introductorias largas.`
 });
 
 let mcpClient = null;
@@ -118,6 +127,9 @@ async function initMCP() {
             await loginOberon();
             console.log("🔄 Reintentando conexión MCP tras obtener token...");
             setTimeout(initMCP, 2000); // Wait bit before retry
+        } else if (err.message.includes("320") || err.message.toLowerCase().includes("timeout") || err.message.toLowerCase().includes("econnrefused")) {
+            console.log("⏳ Servidor MCP no responde o Timeout. Reintentando de nuevo en 5 segundos...");
+            setTimeout(initMCP, 5000); // Esperar más tiempo y reintentar
         }
     }
 }
@@ -162,6 +174,11 @@ socket.on("whatsapp_message", async (data) => {
         }
 
         try {
+            if (geminiTools.length === 0) {
+                enviarRespuesta("⚠️ Estoy inicializando mis herramientas o perdí la conexión con el servidor. Por favor, intenta de nuevo en unos segundos.", [data.from]);
+                return;
+            }
+
             const chatSession = modelText.startChat({
                 tools: geminiTools.length > 0 ? [{ functionDeclarations: geminiTools }] : undefined
             });
@@ -208,6 +225,15 @@ socket.on("whatsapp_message", async (data) => {
                 } else {
                     isDone = true;
                     console.log("💬 Ejecución de herramientas por Gemini finalizada.");
+                    try {
+                        let fallbackText = result.response.text();
+                        if (fallbackText && fallbackText.trim().length > 0) {
+                            console.log("💬 Gemini finalizó devolviendo solo texto plano:", fallbackText.substring(0, 100));
+                            enviarRespuesta(fallbackText, [data.from]);
+                        }
+                    } catch (e) {
+                        // ignore if text() throws
+                    }
                 }
             }
 
